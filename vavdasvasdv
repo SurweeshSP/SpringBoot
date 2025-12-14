@@ -1,0 +1,202 @@
+[1mdiff --git a/src/main/java/com/surweesh/summa/photo/clone/DownloadController.java b/src/main/java/com/surweesh/summa/photo/clone/DownloadController.java[m
+[1mindex f867c45..815f792 100644[m
+[1m--- a/src/main/java/com/surweesh/summa/photo/clone/DownloadController.java[m
+[1m+++ b/src/main/java/com/surweesh/summa/photo/clone/DownloadController.java[m
+[36m@@ -5,6 +5,8 @@[m [mimport org.springframework.http.HttpStatus;[m
+ import org.springframework.http.MediaType;[m
+ import org.springframework.http.ResponseEntity;[m
+ import org.springframework.web.bind.annotation.*;[m
+[32m+[m[32mimport org.springframework.web.multipart.MultipartFile;[m
+[32m+[m
+ [m
+ @RestController[m
+ public class DownloadController {[m
+[36m@@ -33,6 +35,7 @@[m [mpublic class DownloadController {[m
+             "attachment; filename=\"" + photo.getFileName() + "\""[m
+         );[m
+ [m
+[32m+[m
+         return new ResponseEntity<>(data, headers, HttpStatus.OK);[m
+     }[m
+ }[m
+[1mdiff --git a/src/main/java/com/surweesh/summa/photo/clone/PhotoController.java b/src/main/java/com/surweesh/summa/photo/clone/PhotoController.java[m
+[1mindex d1d2358..cd4b2a0 100644[m
+[1m--- a/src/main/java/com/surweesh/summa/photo/clone/PhotoController.java[m
+[1m+++ b/src/main/java/com/surweesh/summa/photo/clone/PhotoController.java[m
+[36m@@ -16,15 +16,20 @@[m [mimport jakarta.validation.Valid;[m
+ import org.springframework.web.bind.annotation.ResponseStatus;[m
+ import org.springframework.web.bind.annotation.RequestBody;[m
+ import org.springframework.web.bind.annotation.RequestPart;[m
+[32m+[m[32mimport org.springframework.http.ResponseEntity;[m
+ import org.springframework.http.HttpStatus;[m
+[32m+[m[32mimport org.springframework.http.HttpHeaders;[m
+[32m+[m[32mimport org.springframework.http.MediaType;[m
+ [m
+ @RestController[m
+ public class PhotoController {[m
+ [m
+     private final PhotoService phService;[m
+[32m+[m[32m    private final PhotoRepository photoRepository;[m
+ [m
+[31m-    public PhotoController(PhotoService phService) {[m
+[32m+[m[32m    public PhotoController(PhotoService phService, PhotoRepository photoRepository) {[m
+         this.phService = phService;[m
+[32m+[m[32m        this.photoRepository = photoRepository;[m
+     }[m
+ [m
+     @GetMapping("/hello")[m
+[36m@@ -33,10 +38,11 @@[m [mpublic class PhotoController {[m
+     }[m
+ [m
+     @GetMapping("/photoz")[m
+[31m-    public Collection<Photo> getAll() {[m
+[32m+[m[32m    public List<Photo> getAll() {[m
+         return phService.getAll();[m
+     }[m
+ [m
+[32m+[m
+     @GetMapping("/photoz/{id}")[m
+     public Photo get(@PathVariable String id) {[m
+         Photo ph = phService.get(id);[m
+[36m@@ -66,4 +72,15 @@[m [mpublic class PhotoController {[m
+         phService.save(ph);[m
+         return "redirect:/";[m
+     }[m
+[32m+[m
+[32m+[m[32m    @GetMapping("/photoz/{id}/data")[m
+[32m+[m[32m    public ResponseEntity<byte[]> getPhotoData(@PathVariable String id) {[m
+[32m+[m[32m    Photo photo = photoRepository.findById(id)[m
+[32m+[m[32m            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));[m
+[32m+[m[32m    HttpHeaders headers = new HttpHeaders();[m
+[32m+[m[32m    headers.setContentType(MediaType.IMAGE_JPEG); // or PNG[m
+[32m+[m
+[32m+[m[32m    return new ResponseEntity<>(photo.getData(), headers, HttpStatus.OK);[m
+[32m+[m[32m}[m
+[32m+[m
+ }[m
+\ No newline at end of file[m
+[1mdiff --git a/src/main/java/com/surweesh/summa/photo/clone/PhotoService.java b/src/main/java/com/surweesh/summa/photo/clone/PhotoService.java[m
+[1mindex 8b2940e..41f3483 100644[m
+[1m--- a/src/main/java/com/surweesh/summa/photo/clone/PhotoService.java[m
+[1m+++ b/src/main/java/com/surweesh/summa/photo/clone/PhotoService.java[m
+[36m@@ -1,30 +1,35 @@[m
+ package com.surweesh.summa.photo.clone;[m
+ [m
+[31m-import java.util.Collection;[m
+[31m-import java.util.HashMap;[m
+[31m-import java.util.Map;[m
+[32m+[m[32mimport java.util.List;[m
+ [m
+ import org.springframework.stereotype.Service;[m
+ [m
+ @Service[m
+ public class PhotoService {[m
+ [m
+[31m-    private final Map<String, Photo> db = new HashMap<>();[m
+[32m+[m[32m    private final PhotoRepository repo;[m
+ [m
+[31m-    public Collection<Photo> getAll() {[m
+[31m-        return db.values();[m
+[32m+[m[32m    public PhotoService(PhotoRepository repo) {[m
+[32m+[m[32m        this.repo = repo;[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    public List<Photo> getAll() {[m
+[32m+[m[32m        return repo.findAll();[m
+     }[m
+ [m
+     public Photo get(String id) {[m
+[31m-        return db.get(id);[m
+[32m+[m[32m        return repo.findById(id).orElse(null);[m
+     }[m
+ [m
+     public Photo save(Photo photo) {[m
+[31m-        db.put(photo.getId(), photo);[m
+[31m-        return photo;[m
+[32m+[m[32m        return repo.save(photo);[m
+     }[m
+ [m
+     public boolean delete(String id) {[m
+[31m-        return db.remove(id) != null;[m
+[32m+[m[32m        if (repo.existsById(id)) {[m
+[32m+[m[32m            repo.deleteById(id);[m
+[32m+[m[32m            return true;[m
+[32m+[m[32m        }[m
+[32m+[m[32m        return false;[m
+     }[m
+[31m-}[m
+[32m+[m[32m}[m
+\ No newline at end of file[m
+[1mdiff --git a/src/main/resources/static/upload.html b/src/main/resources/static/upload.html[m
+[1mindex 6ce3646..ac3ecba 100644[m
+[1m--- a/src/main/resources/static/upload.html[m
+[1m+++ b/src/main/resources/static/upload.html[m
+[36m@@ -1,39 +1,53 @@[m
+ <!DOCTYPE html>[m
+ <html>[m
+ <head>[m
+[31m-    <title>Upload Photo</title>[m
+[32m+[m[32m    <title>Photo Viewer</title>[m
+ </head>[m
+ <body>[m
+[31m-    <h1>Upload a Photo</h1>[m
+ [m
+[31m-    <input type="file" id="fileInput" required />[m
+[31m-    <button type="button" onclick="uploadPhoto()">Upload</button>[m
+[32m+[m[32m<h2>Upload Photo</h2>[m
+ [m
+[31m-    <script>[m
+[31m-        async function uploadPhoto() {[m
+[31m-            const fileInput = document.getElementById("fileInput");[m
+[32m+[m[32m<input type="file" id="file">[m
+[32m+[m[32m<button onclick="upload()">Upload</button>[m
+ [m
+[31m-            if (!fileInput.files.length) {[m
+[31m-                alert("Please select a file");[m
+[31m-                return;[m
+[31m-            }[m
+[32m+[m[32m<hr>[m
+ [m
+[31m-            const formData = new FormData();[m
+[31m-            formData.append("file", fileInput.files[0]);[m
+[32m+[m[32m<h2>Photos</h2>[m
+[32m+[m[32m<div id="photos"></div>[m
+ [m
+[31m-            const response = await fetch("http://localhost:8081/photoz", {[m
+[31m-                method: "POST",[m
+[31m-                body: formData[m
+[31m-            });[m
+[32m+[m[32m<script>[m
+[32m+[m[32masync function upload() {[m
+[32m+[m[32m    const file = document.getElementById("file").files[0];[m
+[32m+[m[32m    const formData = new FormData();[m
+[32m+[m[32m    formData.append("file", file);[m
+ [m
+[31m-            if (!response.ok) {[m
+[31m-                alert("Upload failed: " + response.status);[m
+[31m-                return;[m
+[31m-            }[m
+[32m+[m[32m    const res = await fetch("/photoz", {[m
+[32m+[m[32m        method: "POST",[m
+[32m+[m[32m        body: formData[m
+[32m+[m[32m    });[m
+[32m+[m
+[32m+[m[32m    const photo = await res.json();[m
+[32m+[m[32m    loadPhotos();[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32masync function loadPhotos() {[m
+[32m+[m[32m    const res = await fetch("/photoz");[m
+[32m+[m[32m    const photos = await res.json();[m
+[32m+[m
+[32m+[m[32m    const container = document.getElementById("photos");[m
+[32m+[m[32m    container.innerHTML = "";[m
+[32m+[m
+[32m+[m[32m    photos.forEach(p => {[m
+[32m+[m[32m        const img = document.createElement("img");[m
+[32m+[m[32m        img.src = `/photoz/${p.id}/data`;[m
+[32m+[m[32m        img.width = 200;[m
+[32m+[m[32m        img.style.margin = "10px";[m
+[32m+[m[32m        container.appendChild(img);[m
+[32m+[m[32m    });[m
+[32m+[m[32

@@ -16,15 +16,20 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 
 @RestController
 public class PhotoController {
 
     private final PhotoService phService;
+    private final PhotoRepository photoRepository;
 
-    public PhotoController(PhotoService phService) {
+    public PhotoController(PhotoService phService, PhotoRepository photoRepository) {
         this.phService = phService;
+        this.photoRepository = photoRepository;
     }
 
     @GetMapping("/hello")
@@ -33,9 +38,10 @@ public class PhotoController {
     }
 
     @GetMapping("/photoz")
-    public Collection<Photo> getAll() {
+    public List<Photo> getAll() {
         return phService.getAll();
     }
+
 
     @GetMapping("/photoz/{id}")
     public Photo get(@PathVariable String id) {
@@ -66,4 +72,15 @@ public class PhotoController {
         phService.save(ph);
         return "redirect:/";
     }
+
+    @GetMapping("/photoz/{id}/data")
+    public ResponseEntity<byte[]> getPhotoData(@PathVariable String id) {
+    Photo photo = photoRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.IMAGE_JPEG); // or PNG
+
+    return new ResponseEntity<>(photo.getData(), headers, HttpStatus.OK);
+}
+
 }

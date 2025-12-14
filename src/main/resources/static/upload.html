@@ -1,39 +1,53 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Upload Photo</title>
+    <title>Photo Viewer</title>
 </head>
 <body>
-    <h1>Upload a Photo</h1>
 
-    <input type="file" id="fileInput" required />
-    <button type="button" onclick="uploadPhoto()">Upload</button>
+<h2>Upload Photo</h2>
 
-    <script>
-        async function uploadPhoto() {
-            const fileInput = document.getElementById("fileInput");
+<input type="file" id="file">
+<button onclick="upload()">Upload</button>
 
-            if (!fileInput.files.length) {
-                alert("Please select a file");
-                return;
-            }
+<hr>
 
-            const formData = new FormData();
-            formData.append("file", fileInput.files[0]);
+<h2>Photos</h2>
+<div id="photos"></div>
 
-            const response = await fetch("http://localhost:8081/photoz", {
-                method: "POST",
-                body: formData
-            });
+<script>
+async function upload() {
+    const file = document.getElementById("file").files[0];
+    const formData = new FormData();
+    formData.append("file", file);
 
-            if (!response.ok) {
-                alert("Upload failed: " + response.status);
-                return;
-            }
+    const res = await fetch("/photoz", {
+        method: "POST",
+        body: formData
+    });
 
-            const data = await response.json();
-            alert("Uploaded successfully!\nID: " + data.id);
-        }
-    </script>
+    const photo = await res.json();
+    loadPhotos();
+}
+
+async function loadPhotos() {
+    const res = await fetch("/photoz");
+    const photos = await res.json();
+
+    const container = document.getElementById("photos");
+    container.innerHTML = "";
+
+    photos.forEach(p => {
+        const img = document.createElement("img");
+        img.src = `/photoz/${p.id}/data`;
+        img.width = 200;
+        img.style.margin = "10px";
+        container.appendChild(img);
+    });
+}
+
+loadPhotos();
+</script>
+
 </body>
 </html>

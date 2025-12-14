@@ -5,6 +5,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
 
 @RestController
 public class DownloadController {
@@ -32,6 +34,7 @@ public class DownloadController {
             HttpHeaders.CONTENT_DISPOSITION,
             "attachment; filename=\"" + photo.getFileName() + "\""
         );
+
 
         return new ResponseEntity<>(data, headers, HttpStatus.OK);
     }
